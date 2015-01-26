@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from csv import DictReader
 from re import sub
+from imaplib import Commands
 tla = raw_input("What is the site's TLA? ")
 zone = raw_input("What is the zone's TLA? ")
 csvfile = tla.lower() + 'APs.csv'
@@ -30,9 +31,7 @@ if ssh.lower() == "yes" or ssh.lower() == "y":
     ip = raw_input("Zone Director IP: ")
     username = raw_input ("Username: ")
     passwd = getpass()
-    f = open('%sAPcommands.txt' % tla.lower(),'r')
-    commands = f.read()
-
+    
     #Create instance of SSHClient object
     remote_conn_pre = paramiko.SSHClient()
 
@@ -47,13 +46,12 @@ if ssh.lower() == "yes" or ssh.lower() == "y":
     remote_conn = remote_conn_pre.invoke_shell()
     print "Interactive SSH session established"
     
-    #Wait for prompt, then send commmands in the file
+    #Wait for prompt, then send commmands one line at a time with a short delay between each and print output to the console
     sleep(2)
-    remote_conn.send(commands)
-    sleep(30)
-    
-    #Print output to the console
-    print(remote_conn.recv())
-    
+    with open("testdoc.txt","r") as commands:
+        for line in commands:
+            remote_conn.send(line)
+            sleep(0.25)
+            print(remote_conn.recv(100))   
 else:
     print "Goodbye"
