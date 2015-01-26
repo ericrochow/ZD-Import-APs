@@ -1,7 +1,6 @@
 #!/usr/bin/python
 from csv import DictReader
 from re import sub
-from imaplib import Commands
 tla = raw_input("What is the site's TLA? ")
 zone = raw_input("What is the zone's TLA? ")
 csvfile = tla.lower() + 'APs.csv'
