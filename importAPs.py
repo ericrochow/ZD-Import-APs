@@ -1,26 +1,35 @@
 #!/usr/bin/python
 from csv import DictReader
-from re import sub
+from re import sub, match
 tla = raw_input("What is the site's TLA? ")
 zone = raw_input("What is the zone's TLA? ")
 csvfile = tla.lower() + 'APs.csv'
 zd = DictReader(open(csvfile, 'rb'), delimiter=',', quotechar='"')
 f = open('%sAPcommands.txt' % tla.lower(),'w')
+badMAC = []
 #Add line at beginning of file to enter enable mode
 f.write("enable\n")
 #Cycle through contents of CSV to create config lines for each AP
 for row in zd:
-    row['mac'] = sub('[^A-Za-z0-9]+', '', row['mac'])
-    row['mac'] = sub(r'(..)(..)(..)(..)(..)(..)',r'\1:\2:\3:\4:\5:\6',row['mac'].lower())
-    f.write("config\n")
-    f.write("ap %s\n" % row['mac'])
-    f.write("devname %s\n" % row['name'])
-    f.write("group name %s Zone\n" % zone.upper())
-    f.write("location \"%s %s\"\n" % (tla.upper(), row['location']))
-    f.write("description \"%s %s\"\n" % (tla.upper(), row['location']))
-    f.write("end\n")
-    f.write("quit\n")
+    if match ("[0-9a-f]{12}$", sub("[^a-f0-9]", "", row['mac'].lower())):
+        row['mac'] = ''.join(char for char in row['mac'] if char.isalnum())
+        row['mac'] = sub(r"(..)(..)(..)(..)(..)(..)",r"\1:\2:\3:\4:\5:\6",row['mac'].lower())
+        f.write("config\n")
+        f.write("ap %s\n" % row['mac'])
+        f.write("devname %s\n" % row['name'])
+        f.write("group name %s Zone\n" % zone.upper())
+        f.write("location \"%s %s\"\n" % (tla.upper(), row['location']))
+        f.write("description \"%s %s\"\n" % (tla.upper(), row['location']))
+        f.write("end\n")
+        f.write("quit\n")
+    else:
+        badMAC.append(row['mac'])
 f.close()
+print "The following file has been generated using the information in %s: %sAPcommands.txt" % (csvfile, tla.lower())
+if badMAC != []:
+    print "The following MAC addresses were malformed and have been omitted:"
+    for mac in badMAC:
+        print mac
 ssh = raw_input("Would you like to automatically add these APs to the Zone Director? ")
 if ssh.lower() == "yes" or ssh.lower() == "y":
     import paramiko
